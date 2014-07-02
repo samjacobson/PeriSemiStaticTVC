@@ -1,6 +1,6 @@
 //
 //  PeriSemiStaticTableViewController.m
-//  SemiStaticExample
+//  PeriSemiStaticTVC
 //
 //  Created by Sam Jacobson on 27/05/14.
 //  Copyright (c) 2014 PeriSentient Ltd. All rights reserved.
@@ -21,14 +21,14 @@
 #pragma mark - Launch
 
 - (void)viewDidLoad {
-    [super viewDidLoad];
+	[super viewDidLoad];
 
 	_maskedRows = [NSMutableDictionary dictionary];
 	_dynamicSections = [NSMutableDictionary dictionary];
 }
 
 - (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
+	[super didReceiveMemoryWarning];
 }
 
 - (PeriDynamicSection *)dynamicSection:(NSInteger)section {
@@ -55,31 +55,26 @@
 	return nil;
 }
 
-
-- (void)setDataSource:(id<UITableViewDataSource>)dataSource dataSection:(NSInteger)dataSection cellNib:(NSString *)cellNib forTableSection:(NSInteger)tableSection withCellHeight:(CGFloat)cellHeight {
-
-	if(dataSource == nil)
-		[_dynamicSections removeObjectForKey:@(tableSection)];
-	else {
-		PeriDynamicSection * s = [[PeriDynamicSection alloc] init];
-		s.cellNib = cellNib;
-		s.dataSource = dataSource;
-		s.dataSection = dataSection;
-		if(cellHeight == 0) {
-			UINib * nib = [UINib nibWithNibName:cellNib bundle:[NSBundle mainBundle]];
-			NSArray * objects = [nib instantiateWithOwner:nil options:nil];
-			UITableViewCell * cell = objects[0];
-			s.cellHeight = cell.frame.size.height;
-		}
-		else
-			s.cellHeight = cellHeight;
-		_dynamicSections[@(tableSection)] = s;
-		[self.tableView registerNib:[UINib nibWithNibName:cellNib bundle:[NSBundle mainBundle]] forCellReuseIdentifier:cellNib];
-	}
+- (NSString *)tagForTablePath:(NSIndexPath *)tablePath {
+	return [[self.tableView cellForRowAtIndexPath:tablePath] peritag];
 }
 
-- (void)setDataSource:(id<UITableViewDataSource>)dataSource dataSection:(NSInteger)dataSection cellNib:(NSString *)cellNib forTableSection:(NSInteger)tableSection {
-	[self setDataSource:dataSource dataSection:dataSection cellNib:cellNib forTableSection:tableSection withCellHeight:0];
+- (void)setDynamicSection:(PeriDynamicSection *)dyn forSection:(NSInteger)tableSection {
+
+	if(dyn == nil)
+		[_dynamicSections removeObjectForKey:@(tableSection)];
+	else {
+		dyn.tableView = self.tableView;
+		dyn.section = tableSection;
+		if(dyn.cellHeight == 0) {
+			UINib * nib = [UINib nibWithNibName:dyn.cellNib bundle:[NSBundle mainBundle]];
+			NSArray * objects = [nib instantiateWithOwner:nil options:nil];
+			UITableViewCell * cell = objects[0];
+			dyn.cellHeight = cell.frame.size.height;
+		}
+		_dynamicSections[@(tableSection)] = dyn;
+		[self.tableView registerNib:[UINib nibWithNibName:dyn.cellNib bundle:[NSBundle mainBundle]] forCellReuseIdentifier:dyn.cellNib];
+	}
 }
 
 #pragma mark - Index Path translation
@@ -121,12 +116,12 @@
 	return nil;		// couldn't find static path; invalid table path?
 }
 
-- (NSIndexPath *)dataPathForTablePath:(NSIndexPath *)tablePath {
-	PeriDynamicSection * ds = [self dynamicSection:tablePath.section];
-	if(ds)
-		return [NSIndexPath indexPathForRow:tablePath.row inSection:ds.dataSection];
-	return nil;
-}
+//- (NSIndexPath *)dataPathForTablePath:(NSIndexPath *)tablePath {
+//	PeriDynamicSection * ds = [self dynamicSection:tablePath.section];
+//	if(ds)
+//		return [NSIndexPath indexPathForRow:tablePath.row inSection:ds.dataSection];
+//	return nil;
+//}
 
 #pragma mark - Mask Static Rows
 
@@ -141,7 +136,7 @@
 		section[@(staticPath.row)] = @YES;
 		[self.tableView deleteRowsAtIndexPaths:@[tablePath] withRowAnimation:animation];
 	}
-//	NSLog(@"maskStaticRowAtPath: %@ -> %@", staticPath, _maskedRows);
+	//	NSLog(@"maskStaticRowAtPath: %@ -> %@", staticPath, _maskedRows);
 }
 
 - (void)unmaskStaticRowAtPath:(NSIndexPath *)staticPath withRowAnimation:(UITableViewRowAnimation)animation {
@@ -153,12 +148,30 @@
 			[self.tableView insertRowsAtIndexPaths:@[tablePath] withRowAnimation:animation];
 		}
 	}
-//	NSLog(@"unmaskStaticRowAtPath: %@ -> %@", staticPath, _maskedRows);
+	//	NSLog(@"unmaskStaticRowAtPath: %@ -> %@", staticPath, _maskedRows);
 }
 
 - (BOOL)staticRowIsMasked:(NSIndexPath *)staticPath {
 	NSMutableDictionary * section = _maskedRows[@(staticPath.section)];
 	return [section[@(staticPath.row)] boolValue];
+}
+
+#pragma mark - Masking API
+
+- (void)mask:(BOOL)mask staticPath:(NSIndexPath *)staticPath withRowAnimation:(UITableViewRowAnimation)animation {
+	if(mask)
+		[self maskStaticRowAtPath:staticPath withRowAnimation:animation];
+	else
+		[self unmaskStaticRowAtPath:staticPath withRowAnimation:animation];
+}
+
+- (void)toggleMaskStaticPath:(NSIndexPath *)staticPath withRowAnimation:(UITableViewRowAnimation)animation {
+	BOOL mask = ![self isStaticPathMasked:staticPath];
+	[self mask:mask staticPath:staticPath withRowAnimation:animation];
+}
+
+- (BOOL)isStaticPathMasked:(NSIndexPath *)staticPath {
+	return [self staticRowIsMasked:staticPath];
 }
 
 
@@ -167,7 +180,7 @@
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)nSection {
 	PeriDynamicSection * ds = [self dynamicSection:nSection];
 	if(ds)
-		return [ds.dataSource tableView:tableView numberOfRowsInSection:ds.dataSection];
+		return [ds tableViewNumberOfRowsInSection:tableView];
 
 	NSInteger nRows = [super tableView:tableView numberOfRowsInSection:nSection];
 	NSMutableDictionary * section = _maskedRows[@(nSection)];
@@ -176,10 +189,8 @@
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)tablePath {
 	PeriDynamicSection * ds = [self dynamicSection:tablePath.section];
-	if(ds) {
-//		NSIndexPath * dynamicPath = [NSIndexPath indexPathForRow:tablePath.row inSection:ds.dataSection];
-		return [ds.dataSource tableView:tableView cellForRowAtIndexPath:tablePath];
-	}
+	if(ds)
+		return [ds tableView:tableView cellForRowAtIndexPath:tablePath];
 
 	NSIndexPath * staticPath = [self staticPathForTablePath:tablePath];
 	return [super tableView:tableView cellForRowAtIndexPath:staticPath];
