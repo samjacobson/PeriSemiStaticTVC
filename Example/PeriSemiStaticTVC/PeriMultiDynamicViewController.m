@@ -51,10 +51,7 @@
 
 	if(indexPath.section == 1 && indexPath.row == 0) {
 		NSIndexPath * staticPath = [NSIndexPath indexPathForRow:1 inSection:1];
-		if([self staticRowIsMasked:staticPath])
-			[self unmaskStaticRowAtPath:staticPath withRowAnimation:UITableViewRowAnimationAutomatic];
-		else
-			[self maskStaticRowAtPath:staticPath withRowAnimation:UITableViewRowAnimationAutomatic];
+		[self toggleMaskStaticPath:staticPath withRowAnimation:UITableViewRowAnimationAutomatic];
 	}
 }
 

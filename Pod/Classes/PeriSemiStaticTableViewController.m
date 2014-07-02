@@ -39,6 +39,8 @@
 	return _maskedRows[@(section)];
 }
 
+#pragma mark - Tags
+
 - (NSIndexPath *)staticPathForTag:(NSString *)tag {
 	NSInteger nSections = [self numberOfSectionsInTableView:self.tableView];
 	for(NSInteger section = 0; section < nSections; section++) {
@@ -58,6 +60,8 @@
 - (NSString *)tagForTablePath:(NSIndexPath *)tablePath {
 	return [[self.tableView cellForRowAtIndexPath:tablePath] peritag];
 }
+
+#pragma mark - Dynamic Sections
 
 - (void)setDynamicSection:(PeriDynamicSection *)dyn forSection:(NSInteger)tableSection {
 
@@ -116,53 +120,30 @@
 	return nil;		// couldn't find static path; invalid table path?
 }
 
-//- (NSIndexPath *)dataPathForTablePath:(NSIndexPath *)tablePath {
-//	PeriDynamicSection * ds = [self dynamicSection:tablePath.section];
-//	if(ds)
-//		return [NSIndexPath indexPathForRow:tablePath.row inSection:ds.dataSection];
-//	return nil;
-//}
 
-#pragma mark - Mask Static Rows
-
-- (void)maskStaticRowAtPath:(NSIndexPath *)staticPath withRowAnimation:(UITableViewRowAnimation)animation {
-	NSMutableDictionary * section = [self maskForSection:staticPath.section];
-	if(section == nil) {
-		section = [NSMutableDictionary dictionary];
-		_maskedRows[@(staticPath.section)] = section;
-	}
-	if([section[@(staticPath.row)] boolValue] == NO) {
-		NSIndexPath * tablePath = [self tablePathForStaticPath:staticPath];
-		section[@(staticPath.row)] = @YES;
-		[self.tableView deleteRowsAtIndexPaths:@[tablePath] withRowAnimation:animation];
-	}
-	//	NSLog(@"maskStaticRowAtPath: %@ -> %@", staticPath, _maskedRows);
-}
-
-- (void)unmaskStaticRowAtPath:(NSIndexPath *)staticPath withRowAnimation:(UITableViewRowAnimation)animation {
-	NSMutableDictionary * section = _maskedRows[@(staticPath.section)];
-	if(section != nil) {
-		if([section[@(staticPath.row)] boolValue]) {
-			[section removeObjectForKey:@(staticPath.row)];
-			NSIndexPath * tablePath = [self tablePathForStaticPath:staticPath];
-			[self.tableView insertRowsAtIndexPaths:@[tablePath] withRowAnimation:animation];
-		}
-	}
-	//	NSLog(@"unmaskStaticRowAtPath: %@ -> %@", staticPath, _maskedRows);
-}
-
-- (BOOL)staticRowIsMasked:(NSIndexPath *)staticPath {
-	NSMutableDictionary * section = _maskedRows[@(staticPath.section)];
-	return [section[@(staticPath.row)] boolValue];
-}
 
 #pragma mark - Masking API
 
 - (void)mask:(BOOL)mask staticPath:(NSIndexPath *)staticPath withRowAnimation:(UITableViewRowAnimation)animation {
-	if(mask)
-		[self maskStaticRowAtPath:staticPath withRowAnimation:animation];
-	else
-		[self unmaskStaticRowAtPath:staticPath withRowAnimation:animation];
+	NSMutableDictionary * section = _maskedRows[@(staticPath.section)];
+	if(section == nil) {
+		if(! mask)
+			return;
+		section = [NSMutableDictionary dictionary];
+		_maskedRows[@(staticPath.section)] = section;
+	}
+	if([section[@(staticPath.row)] boolValue] == mask)
+		return;
+	if(mask) {
+		NSIndexPath * tablePath = [self tablePathForStaticPath:staticPath];
+		section[@(staticPath.row)] = @YES;
+		[self.tableView deleteRowsAtIndexPaths:@[tablePath] withRowAnimation:animation];
+	}
+	else {
+		[section removeObjectForKey:@(staticPath.row)];
+		NSIndexPath * tablePath = [self tablePathForStaticPath:staticPath];
+		[self.tableView insertRowsAtIndexPaths:@[tablePath] withRowAnimation:animation];
+	}
 }
 
 - (void)toggleMaskStaticPath:(NSIndexPath *)staticPath withRowAnimation:(UITableViewRowAnimation)animation {
@@ -171,7 +152,8 @@
 }
 
 - (BOOL)isStaticPathMasked:(NSIndexPath *)staticPath {
-	return [self staticRowIsMasked:staticPath];
+	NSMutableDictionary * section = _maskedRows[@(staticPath.section)];
+	return [section[@(staticPath.row)] boolValue];
 }
 
 
