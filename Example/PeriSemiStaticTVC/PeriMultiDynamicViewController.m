@@ -11,8 +11,8 @@
 #import "PeriLargeTableViewCell.h"
 
 @interface PeriMultiDynamicViewController ()
-@property (strong, nonatomic) PeriArrayDataSource * ds1;
-@property (strong, nonatomic) PeriArrayDataSource * ds2;
+@property (strong, nonatomic) PeriSectionArrayDataSource * ds1;
+@property (strong, nonatomic) PeriSectionArrayDataSource * ds2;
 
 @end
 
@@ -23,20 +23,20 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
-	NSString * nib1 = @"DynamicCell";
 	NSArray * items = @[@"One", @"Two", @"January", @"etc"];
-	_ds1 = [[PeriArrayDataSource alloc] initWithItems:items cellIdentifier:nib1 configureCellBlock:^(UITableViewCell * cell, NSIndexPath * indexPath) {
-		NSString * item = [_ds1 objectAtIndexPath:[self dataPathForTablePath:indexPath]];
+	_ds1 = [[PeriSectionArrayDataSource alloc] initWithItems:items configureCellBlock:^(UITableViewCell * cell, NSIndexPath * indexPath) {
+		NSString * item = [_ds1 objectAtIndexPath:indexPath];
 		cell.textLabel.text = item;
 	}];
-	[self setDataSource:_ds1 dataSection:0 cellNib:nib1 forTableSection:0];
+	_ds1.cellNib = @"DynamicCell";
+	[self setDynamicSection:_ds1 forSection:0];
 
-	NSString * nib2 = @"LargeCell";
-	_ds2 = [[PeriArrayDataSource alloc] initWithItems:items cellIdentifier:nib2 configureCellBlock:^(PeriLargeTableViewCell * cell, NSIndexPath * indexPath) {
-		NSString * item = [_ds2 objectAtIndexPath:[self dataPathForTablePath:indexPath]];
+	_ds2 = [[PeriSectionArrayDataSource alloc] initWithItems:items configureCellBlock:^(PeriLargeTableViewCell * cell, NSIndexPath * indexPath) {
+		NSString * item = [_ds2 objectAtIndexPath:indexPath];
 		[cell setContent:item];
 	}];
-	[self setDataSource:_ds2 dataSection:0 cellNib:nib2 forTableSection:2];
+	_ds2.cellNib = @"LargeCell";
+	[self setDynamicSection:_ds2 forSection:2];
 }
 
 - (void)didReceiveMemoryWarning {

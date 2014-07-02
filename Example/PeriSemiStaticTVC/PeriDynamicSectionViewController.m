@@ -7,10 +7,10 @@
 //
 
 #import "PeriDynamicSectionViewController.h"
-#import "PeriArrayDataSource.h"
+#import <PeriSemiStaticTVC/PeriSectionArrayDataSource.h>
 
 @interface PeriDynamicSectionViewController ()
-@property (strong, nonatomic) PeriArrayDataSource * ds;
+@property (strong, nonatomic) PeriSectionArrayDataSource * ds;
 
 @end
 
@@ -21,13 +21,14 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
-	NSString * nib = @"DynamicCell";
 	NSArray * items = @[@"One", @"Two", @"January", @"etc"];
-	_ds = [[PeriArrayDataSource alloc] initWithItems:items cellIdentifier:nib configureCellBlock:^(UITableViewCell * cell, NSIndexPath * indexPath) {
-		NSString * item = [_ds objectAtIndexPath:[self dataPathForTablePath:indexPath]];
+	_ds = [[PeriSectionArrayDataSource alloc] initWithItems:items configureCellBlock:^(UITableViewCell * cell, NSIndexPath *indexPath) {
+
+		NSString * item = [_ds objectAtIndexPath:indexPath];
 		cell.textLabel.text = item;
 	}];
-	[self setDataSource:_ds dataSection:0 cellNib:nib forTableSection:1];
+	_ds.cellNib = @"DynamicCell";
+	[self setDynamicSection:_ds forSection:1];
 }
 
 - (void)didReceiveMemoryWarning {
